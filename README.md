@@ -2,6 +2,8 @@
 
 go-commitlinter is simple commit message linter.
 
+![Sample Image](.images/ss.png)
+
 ## Quick Start
 ```
 go install github.com/masahiro331/go-commitlinter@0.0.1
