@@ -2,6 +2,13 @@
 
 go-commitlinter is simple commit message linter.
 
+## Quick Start
+```
+go install github.com/masahiro331/go-commitlinter@0.0.1
+echo "go-commitlinter" >> .git/hooks/commit-msg
+chmod 755 .git/hooks/commit-msg
+```
+
 ## Description
 
 The go-commitlinter will detect and fail a commit message that is not in the following format.
@@ -25,11 +32,3 @@ Allows types:
   - **test** for adding missing tests, refactoring tests; no production code change.
   - **build** for updating build configuration, development tools or other changes irrelevant to the user.
   - **chore** for updates that do not apply to the above, such as dependency updates.
-
-
-## How to use
-```
-go install github.com/masahiro331/go-commitlinter
-echo "go-commitlinter" >> .git/hooks/commit-msg
-chmod 755 .git/hooks/commit-msg
-```
