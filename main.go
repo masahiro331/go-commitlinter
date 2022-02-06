@@ -130,8 +130,8 @@ func finally(m string, err error) {
 	if errors.Is(ErrType, err) {
 		message = fmt.Sprintf(errorTemplate, errorTitle, m, formatDoc, typeDoc, footer)
 	}
-	fmt.Println(message)
 	if err != nil {
+		fmt.Println(message)
 		os.Exit(1)
 	}
 }
