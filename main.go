@@ -1,25 +1,27 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"log"
 	"os"
 	"regexp"
 	"strings"
+
+	"golang.org/x/xerrors"
 )
 
 const (
 	commitMsgFilePath = ".git/COMMIT_EDITMSG"
-	styleDoc          = `The type and scope should always be lowercase.`
 	formatDoc         = "<type>(<scope>): <subject>"
 	errorTitle        = "\033[0;31m============================ Invalid Commit Message ================================\033[0m"
-	errorTemplate     = "\n%s\ncommit message:	\033[0;31m%s\033[0mcorrect format:	\033[0;92m%s\033[0m\n\n%s\n%s\n\n"
+	errorTemplate     = "\n%s\ncommit message:	\033[0;31m%s\033[0m\ncorrect format:	\033[0;92m%s\033[0m\n\n%s\n%s\n\n"
 	footer            = "\033[0;31m====================================================================================\033[0m"
 )
 
 var (
-	FormatRegularPattern = `([a-zA-Z]+)\((.+)\):\s(.*)`
+	FormatRegularPattern = `([a-zA-Z]+)(\(.*\))?:\s+(.*)`
 	requiredTypes        = []string{
 		"feat",
 		"fix",
@@ -41,10 +43,13 @@ var (
 		"\033[0;93mtest\033[0m:		for adding missing tests, refactoring tests; no production code change.\n" +
 		"\033[0;93mbuild\033[0m:		for updating build configuration, development tools or other changes irrelevant to the user.\n" +
 		"\033[0;93mchore\033[0m:		for updates that do not apply to the above, such as dependency updates."
+	scopeDoc = "\033[0;93mThe <scope> can be empty (e.g. if the change is a global or difficult to assign to a single component), in which case the parentheses are omitted.\033[0m"
+	styleDoc = "\033[0;93mThe type and scope should always be lowercase.\033[0m"
 
 	ErrStyle  = errors.New("invalid style error")
 	ErrType   = errors.New("invalid type error")
 	ErrFormat = errors.New("invalid format error")
+	ErrScope  = errors.New("invalid scope error")
 )
 
 type Format struct {
@@ -53,23 +58,34 @@ type Format struct {
 	Subject string
 }
 
-func messageParser(m string) (Format, error) {
+func NewFormat(m string) (Format, error) {
 	p, err := regexp.Compile(FormatRegularPattern)
 	if err != nil {
-		log.Fatal(err)
+		return Format{}, err
 	}
 	ss := p.FindAllStringSubmatch(m, 1)
 	if len(ss) == 0 || len(ss[0]) != 4 {
 		return Format{}, ErrFormat
 	}
 
-	f := Format{
-		Type:    ss[0][1],
-		Scope:   ss[0][2],
-		Subject: ss[0][3],
-	}
-	if f.Type == "" || f.Scope == "" || f.Subject == "" {
+	t := ss[0][1]
+	subject := ss[0][3]
+	if t == "" || subject == "" {
 		return Format{}, ErrFormat
+	}
+
+	scope := ss[0][2]
+	if scope != "" {
+		scope = strings.TrimPrefix(strings.TrimSuffix(scope, ")"), "(")
+		if scope == "" {
+			return Format{}, ErrScope
+		}
+	}
+
+	f := Format{
+		Type:    t,
+		Scope:   scope,
+		Subject: subject,
 	}
 	return f, nil
 }
@@ -81,6 +97,7 @@ func (f Format) scopeLinter() error {
 
 	return nil
 }
+
 func (f Format) typeLinter() error {
 	for _, t := range requiredTypes {
 		if t == f.Type {
@@ -94,23 +111,34 @@ func (f Format) typeLinter() error {
 	return ErrType
 }
 
+func (f Format) Verify() error {
+	if err := f.typeLinter(); err != nil {
+		return err
+	}
+
+	if err := f.scopeLinter(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func run() (string, error) {
-	b, err := os.ReadFile(commitMsgFilePath)
+	f, err := os.Open(commitMsgFilePath)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
-	s := string(b)
-	format, err := messageParser(s)
+	r := bufio.NewReader(f)
+	b, _, err := r.ReadLine()
 	if err != nil {
-		return s, err
+		return "", ErrFormat
 	}
 
-	if err := format.typeLinter(); err != nil {
-		return s, err
+	format, err := NewFormat(string(b))
+	if err != nil {
+		return string(b), err
 	}
-
-	if err := format.scopeLinter(); err != nil {
-		return s, err
+	if err := format.Verify(); err != nil {
+		return string(b), err
 	}
 
 	return "", nil
@@ -118,17 +146,17 @@ func run() (string, error) {
 
 func finally(m string, err error) {
 	message := ""
-	if err != nil {
+	switch err {
+	case ErrFormat, ErrType:
 		message = fmt.Sprintf(errorTemplate, errorTitle, m, formatDoc, typeDoc, footer)
-	}
-	if errors.Is(ErrFormat, err) {
-		message = fmt.Sprintf(errorTemplate, errorTitle, m, formatDoc, typeDoc, footer)
-	}
-	if errors.Is(ErrStyle, err) {
+	case ErrStyle:
 		message = fmt.Sprintf(errorTemplate, errorTitle, m, formatDoc, styleDoc, footer)
-	}
-	if errors.Is(ErrType, err) {
-		message = fmt.Sprintf(errorTemplate, errorTitle, m, formatDoc, typeDoc, footer)
+	case ErrScope:
+		message = fmt.Sprintf(errorTemplate, errorTitle, m, formatDoc, scopeDoc, footer)
+	case nil:
+		return
+	default:
+		log.Fatal(xerrors.Errorf("unspecified error: %w", err))
 	}
 	if err != nil {
 		fmt.Println(message)
