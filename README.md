@@ -56,11 +56,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Go pull request message linter
-        uses: masahiro331/go-commitlinter@0.0.4
+        uses: masahiro331/go-commitlinter@0.1.0
         env:
           PR: ${{ github.event.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 ```
 
 ## Custom Rules
