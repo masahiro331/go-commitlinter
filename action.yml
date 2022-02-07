@@ -4,7 +4,7 @@ runs:
   using: 'composite'
   steps:
     - run: |
-        curl -Lo go-commitlinter.tar.gz https://github.com/masahiro331/go-commitlinter/releases/download/0.0.2/go-commitlinter_0.0.2_Linux_x86_64.tar.gz
+        curl -Lo go-commitlinter.tar.gz https://github.com/masahiro331/go-commitlinter/releases/download/0.1.0/go-commitlinter_0.1.0_Linux_x86_64.tar.gz
         tar xvfz go-commitlinter.tar.gz
         mv go-commitlinter /usr/local/bin/
       shell: bash
