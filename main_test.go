@@ -118,6 +118,11 @@ func TestVerify(t *testing.T) {
 			Message: "feat(Hest): test",
 			wantErr: ErrStyle,
 		},
+		{
+			Name:    "invalid subject",
+			Message: "feat(test): Add hoge",
+			wantErr: ErrSubject,
+		},
 	}
 
 	for _, tc := range testCases {

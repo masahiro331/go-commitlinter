@@ -9,6 +9,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"unicode"
 
 	"golang.org/x/xerrors"
 	"gopkg.in/yaml.v3"
@@ -18,7 +19,8 @@ const (
 	commitMsgFilePath = ".git/COMMIT_EDITMSG"
 	formatDoc         = "<type>(<scope>): <subject>"
 	scopeDoc          = "The <scope> can be empty (e.g. if the change is a global or difficult to assign to a single component), in which case the parentheses are omitted."
-	styleDoc          = "The type and scope should always be lowercase."
+	styleDoc          = "The <type> and <scope> should always be lowercase."
+	subjectDoc        = "The first letter of <subject> should be lowercase."
 )
 
 func textRed(s string) string {
@@ -42,10 +44,11 @@ var (
 	errorTemplate = "\n%s\ntitle message:	%s\ncorrect format:	%s\n\n%s\n\nSee: %s\n"
 	footer        = "============================================================================="
 
-	ErrStyle  = errors.New("invalid style error")
-	ErrType   = errors.New("invalid type error")
-	ErrFormat = errors.New("invalid format error")
-	ErrScope  = errors.New("invalid scope error")
+	ErrStyle   = errors.New("invalid style error")
+	ErrType    = errors.New("invalid type error")
+	ErrFormat  = errors.New("invalid format error")
+	ErrScope   = errors.New("invalid scope error")
+	ErrSubject = errors.New("invalid subject error")
 
 	DefaultConfig = Config{
 		SkipPrefixes: []string{
@@ -183,6 +186,18 @@ func (f Format) scopeLinter() error {
 	return nil
 }
 
+func (f Format) subjectLinter() error {
+	if !(len(f.Subject) > 0) {
+		return ErrFormat
+	}
+	r := rune(f.Subject[0])
+	if unicode.IsUpper(r) {
+		return ErrSubject
+	}
+
+	return nil
+}
+
 func (f Format) typeLinter(c Config) error {
 	for _, r := range c.TypeRules {
 		if r.Type == f.Type {
@@ -204,6 +219,11 @@ func (f Format) Verify(c Config) error {
 	if err := f.scopeLinter(); err != nil {
 		return err
 	}
+
+	if err := f.subjectLinter(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
