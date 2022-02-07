@@ -97,6 +97,7 @@ type_rules:
 reference: https://github.com/masahiro331/go-commitlinter#description
 style_doc: The type and scope should always be lowercase.
 scope_doc: The <scope> can be empty (e.g. if the change is a global or difficult to assign to a single component), in which case the parentheses are omitted.
+subject_doc: The first letter of <subject> should be lowercase.
 ```
 
 - **skip_prefixes**: Use skip some titles. for example, merge commit "Merge branch 'main' of ....."
@@ -104,3 +105,4 @@ scope_doc: The <scope> can be empty (e.g. if the change is a global or difficult
 - **reference**: Include a link to the CONTRIBUTING GUILD.
 - **style_doc**: Describe the specifications of style.
 - **scope_doc**: Describe the specifications of scope.
+- **subject_doc**: Describe the specifications of subject.
