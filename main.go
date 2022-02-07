@@ -26,27 +26,6 @@ var (
 	r = flag.String("rule", "", "select rule file path (config.yaml)")
 
 	FormatRegularPattern = `([a-zA-Z]+)(\(.*\))?:\s+(.*)`
-	requiredTypes        = []string{
-		"feat",
-		"fix",
-		"perf",
-		"docs",
-		"style",
-		"refactor",
-		"test",
-		"build",
-		"chore",
-	}
-	typeDoc = "Allows type values\n" +
-		"\033[0;93mfeat\033[0m:		for a new feature for the user, not a new feature for build script.\n" +
-		"\033[0;93mfix\033[0m:		for a bug fix for the user, not a fix to a build script.\n" +
-		"\033[0;93mperf\033[0m:		for performance improvements.\n" +
-		"\033[0;93mdocs\033[0m:		for changes to the documentation.\n" +
-		"\033[0;93mstyle\033[0m:		for formatting changes, missing semicolons, etc.\n" +
-		"\033[0;93mrefactor\033[0m:	for refactoring production code, e.g. renaming a variable.\n" +
-		"\033[0;93mtest\033[0m:		for adding missing tests, refactoring tests; no production code change.\n" +
-		"\033[0;93mbuild\033[0m:		for updating build configuration, development tools or other changes irrelevant to the user.\n" +
-		"\033[0;93mchore\033[0m:		for updates that do not apply to the above, such as dependency updates."
 
 	scopeDoc = "\033[0;93mThe <scope> can be empty (e.g. if the change is a global or difficult to assign to a single component), in which case the parentheses are omitted.\033[0m"
 	styleDoc = "\033[0;93mThe type and scope should always be lowercase.\033[0m"
@@ -57,6 +36,9 @@ var (
 	ErrScope  = errors.New("invalid scope error")
 
 	DefaultRules = Config{
+		SkipPrefixes: []string{
+			"Merge branch ",
+		},
 		TypeRules: TypeRules{
 			{
 				Type:        "feat",
@@ -115,7 +97,8 @@ func (typeRules TypeRules) String() string {
 }
 
 type Config struct {
-	TypeRules TypeRules `yaml:"type_rules"`
+	SkipPrefixes []string  `yaml:"skip_prefixes"`
+	TypeRules    TypeRules `yaml:"type_rules"`
 }
 
 type Format struct {
@@ -221,6 +204,11 @@ func run() (string, Config, error) {
 	s, err := getMessage()
 	if err != nil {
 		return "", conf, err
+	}
+	for _, skipPrefix := range conf.SkipPrefixes {
+		if strings.HasPrefix(s, skipPrefix) {
+			return "", conf, nil
+		}
 	}
 
 	format, err := NewFormat(s)
