@@ -17,28 +17,42 @@ import (
 const (
 	commitMsgFilePath = ".git/COMMIT_EDITMSG"
 	formatDoc         = "<type>(<scope>): <subject>"
-	errorTitle        = "\033[0;31m============================ Invalid Commit Message ================================\033[0m"
-	errorTemplate     = "\n%s\ncommit message:	\033[0;31m%s\033[0m\ncorrect format:	\033[0;92m%s\033[0m\n\n%s\n%s\n\n"
-	footer            = "\033[0;31m====================================================================================\033[0m"
+	scopeDoc          = "The <scope> can be empty (e.g. if the change is a global or difficult to assign to a single component), in which case the parentheses are omitted."
+	styleDoc          = "The type and scope should always be lowercase."
 )
+
+func textRed(s string) string {
+	return fmt.Sprintf("\033[0;31m%s\033[0m", s)
+}
+
+func textBrightGreen(s string) string {
+	return fmt.Sprintf("\033[0;92m%s\033[0m", s)
+}
+
+func textBrightYellow(s string) string {
+	return fmt.Sprintf("\033[0;93m%s\033[0m", s)
+}
 
 var (
 	r = flag.String("rule", "", "select rule file path (config.yaml)")
 
 	FormatRegularPattern = `([a-zA-Z]+)(\(.*\))?:\s+(.*)`
 
-	scopeDoc = "\033[0;93mThe <scope> can be empty (e.g. if the change is a global or difficult to assign to a single component), in which case the parentheses are omitted.\033[0m"
-	styleDoc = "\033[0;93mThe type and scope should always be lowercase.\033[0m"
+	errorTitle    = "============================ Invalid Message ================================"
+	errorTemplate = "\n%s\ntitle message:	%s\ncorrect format:	%s\n\n%s\n\nSee: %s\n"
+	footer        = "============================================================================="
 
 	ErrStyle  = errors.New("invalid style error")
 	ErrType   = errors.New("invalid type error")
 	ErrFormat = errors.New("invalid format error")
 	ErrScope  = errors.New("invalid scope error")
 
-	DefaultRules = Config{
+	DefaultConfig = Config{
 		SkipPrefixes: []string{
 			"Merge branch ",
+			"BREAKING: ",
 		},
+		Reference: "https://github.com/masahiro331/go-commitlinter#description",
 		TypeRules: TypeRules{
 			{
 				Type:        "feat",
@@ -77,6 +91,8 @@ var (
 				Description: "for updates that do not apply to the above, such as dependency updates.",
 			},
 		},
+		StyleDoc: styleDoc,
+		ScopeDoc: scopeDoc,
 	}
 )
 
@@ -88,9 +104,9 @@ type TypeRule struct {
 type TypeRules []TypeRule
 
 func (typeRules TypeRules) String() string {
-	ret := "Allows type values\n"
+	ret := "Allowed <type> values\n"
 	for _, tr := range typeRules {
-		ret += fmt.Sprintf("\033[0;93m%s\033[0m\t%s\n", tr.Type, tr.Description)
+		ret += fmt.Sprintf("%s\t%s\n", textBrightYellow(tr.Type), tr.Description)
 	}
 
 	return ret
@@ -99,6 +115,9 @@ func (typeRules TypeRules) String() string {
 type Config struct {
 	SkipPrefixes []string  `yaml:"skip_prefixes"`
 	TypeRules    TypeRules `yaml:"type_rules"`
+	Reference    string    `yaml:"reference"`
+	StyleDoc     string    `yaml:"style_doc"`
+	ScopeDoc     string    `yaml:"scope_doc"`
 }
 
 type Format struct {
@@ -107,14 +126,9 @@ type Format struct {
 	Subject string
 }
 
-type Linter struct {
-	Conf   Config
-	Format Format
-}
-
 func NewConfig(filepath string) (Config, error) {
 	if filepath == "" {
-		return DefaultRules, nil
+		return DefaultConfig, nil
 	}
 
 	f, err := os.Open(filepath)
@@ -222,6 +236,27 @@ func run() (string, Config, error) {
 	return "", conf, nil
 }
 
+func finally(m string, conf Config, err error) {
+	message := ""
+	switch err {
+	case ErrFormat, ErrType:
+		message = fmt.Sprintf(errorTemplate, textRed(errorTitle), textRed(m), textBrightGreen(formatDoc), conf.TypeRules, textBrightGreen(conf.Reference))
+	case ErrStyle:
+		message = fmt.Sprintf(errorTemplate, textRed(errorTitle), textRed(m), textBrightGreen(formatDoc), textBrightYellow(conf.StyleDoc), textBrightGreen(conf.Reference))
+	case ErrScope:
+		message = fmt.Sprintf(errorTemplate, textRed(errorTitle), textRed(m), textBrightGreen(formatDoc), textBrightYellow(conf.ScopeDoc), textBrightGreen(conf.Reference))
+	case nil:
+		return
+	default:
+		log.Fatal(xerrors.Errorf("unspecified error: %w", err))
+	}
+	message = fmt.Sprintf("%s\n%s", message, textRed(footer))
+	if err != nil {
+		fmt.Println(message)
+		os.Exit(1)
+	}
+}
+
 func getMessage() (string, error) {
 	reader := bufio.NewReader(os.Stdin)
 	b, _, _ := reader.ReadLine()
@@ -241,26 +276,6 @@ func getMessage() (string, error) {
 	}
 
 	return string(b), nil
-}
-
-func finally(m string, conf Config, err error) {
-	message := ""
-	switch err {
-	case ErrFormat, ErrType:
-		message = fmt.Sprintf(errorTemplate, errorTitle, m, formatDoc, conf.TypeRules, footer)
-	case ErrStyle:
-		message = fmt.Sprintf(errorTemplate, errorTitle, m, formatDoc, styleDoc, footer)
-	case ErrScope:
-		message = fmt.Sprintf(errorTemplate, errorTitle, m, formatDoc, scopeDoc, footer)
-	case nil:
-		return
-	default:
-		log.Fatal(xerrors.Errorf("unspecified error: %w", err))
-	}
-	if err != nil {
-		fmt.Println(message)
-		os.Exit(1)
-	}
 }
 
 func main() {
