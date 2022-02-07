@@ -1,13 +1,12 @@
-name: 'Go commit linter'
-description: 'Inspect commit messages with the format "<type>(scope): <subject>".'
-inputs:
-  message:  # id of input
-    description: 'commit message or pull request messaeg'
-    required: true
-    default: 'World'
-outputs:
-  time: # id of output
-    description: 'The time we greeted you'
+name: 'Go pull request message linter'
+description: 'Inspect pull request messages with the format "<type>(scope): <subject>".'
 runs:
-  using: 'node16'
-  main: 'index.js'
+  using: 'composite'
+  steps:
+    - run: |
+        curl -Lo go-commitlinter.tar.gz https://github.com/masahiro331/go-commitlinter/releases/download/0.0.2/go-commitlinter_0.0.2_Linux_x86_64.tar.gz
+        tar xvfz go-commitlinter.tar.gz
+        mv go-commitlinter /usr/local/bin/
+      shell: bash
+    - run: gh pr view $PR | head -n 1  | cut -f 2 | go-commitlinter
+      shell: bash
