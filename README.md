@@ -6,7 +6,7 @@ go-commitlinter is simple commit message linter.
 
 ## Quick Start
 ```
-go install github.com/masahiro331/go-commitlinter@0.0.1
+go install github.com/masahiro331/go-commitlinter@0.1.0
 echo "go-commitlinter" >> .git/hooks/commit-msg
 chmod 755 .git/hooks/commit-msg
 ```
