@@ -22,8 +22,6 @@ The go-commitlinter will detect and fail a commit message that is not in the fol
 The `type` and `scope` should always be lowercase as shown below.  
 The `<scope>` can be empty (e.g. if the change is a global or difficult to assign to a single component), in which case the parentheses are omitted.
 
-Allows types:
-
 **Allowed `<type>` values:**
   - **feat** for a new feature for the user, not a new feature for build script.
   - **fix** for a bug fix for the user, not a fix to a build script.
@@ -34,3 +32,9 @@ Allows types:
   - **test** for adding missing tests, refactoring tests; no production code change.
   - **build** for updating build configuration, development tools or other changes irrelevant to the user.
   - **chore** for updates that do not apply to the above, such as dependency updates.
+
+**`<scope>` example:**
+  - parser
+  - controller
+  - some `package namespace`
+  - etc...
