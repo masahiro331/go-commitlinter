@@ -9,14 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - name: Set up go-commitlinter
-        run: go install github.com/masahiro331/go-commitlinter@0.0.1
-      - name: Run Pull Request Lint
-        run: gh pr view $PR | head -n 1  | cut -f 2 | go-commitlinter
+      - name: Go pull request message linter
+        uses: masahiro331/go-commitlinter@0.0.4
         env:
           PR: ${{ github.event.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
