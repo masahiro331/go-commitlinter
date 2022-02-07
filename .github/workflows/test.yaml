@@ -18,5 +18,5 @@ jobs:
       - name: Run Pull Request Lint
         run: gh pr view $PR | head -n 1  | cut -f 2 | go-commitlinter
         env:
-          PR: ${{ github.event.pull_request.event }}
+          PR: ${{ github.event.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
