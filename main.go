@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	"golang.org/x/xerrors"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -21,6 +23,8 @@ const (
 )
 
 var (
+	r = flag.String("rule", "", "select rule file path (config.yaml)")
+
 	FormatRegularPattern = `([a-zA-Z]+)(\(.*\))?:\s+(.*)`
 	requiredTypes        = []string{
 		"feat",
@@ -35,7 +39,7 @@ var (
 	}
 	typeDoc = "Allows type values\n" +
 		"\033[0;93mfeat\033[0m:		for a new feature for the user, not a new feature for build script.\n" +
-		"\033[0;93mfix\033[0m:		for a bug fix for the user, not a fix to a build script. \n" +
+		"\033[0;93mfix\033[0m:		for a bug fix for the user, not a fix to a build script.\n" +
 		"\033[0;93mperf\033[0m:		for performance improvements.\n" +
 		"\033[0;93mdocs\033[0m:		for changes to the documentation.\n" +
 		"\033[0;93mstyle\033[0m:		for formatting changes, missing semicolons, etc.\n" +
@@ -43,6 +47,7 @@ var (
 		"\033[0;93mtest\033[0m:		for adding missing tests, refactoring tests; no production code change.\n" +
 		"\033[0;93mbuild\033[0m:		for updating build configuration, development tools or other changes irrelevant to the user.\n" +
 		"\033[0;93mchore\033[0m:		for updates that do not apply to the above, such as dependency updates."
+
 	scopeDoc = "\033[0;93mThe <scope> can be empty (e.g. if the change is a global or difficult to assign to a single component), in which case the parentheses are omitted.\033[0m"
 	styleDoc = "\033[0;93mThe type and scope should always be lowercase.\033[0m"
 
@@ -50,12 +55,95 @@ var (
 	ErrType   = errors.New("invalid type error")
 	ErrFormat = errors.New("invalid format error")
 	ErrScope  = errors.New("invalid scope error")
+
+	DefaultRules = Config{
+		TypeRules: TypeRules{
+			{
+				Type:        "feat",
+				Description: "for a new feature for the user, not a new feature for build script.",
+			},
+			{
+				Type:        "fix",
+				Description: "for a bug fix for the user, not a fix to a build script.",
+			},
+			{
+				Type:        "perf",
+				Description: "for performance improvements.",
+			},
+			{
+				Type:        "docs",
+				Description: "for changes to the documentation.",
+			},
+			{
+				Type:        "style",
+				Description: "for formatting changes, missing semicolons, etc.",
+			},
+			{
+				Type:        "refactor",
+				Description: "for refactoring production code, e.g. renaming a variable.",
+			},
+			{
+				Type:        "test",
+				Description: "for adding missing tests, refactoring tests; no production code change.",
+			},
+			{
+				Type:        "build",
+				Description: "for updating build configuration, development tools or other changes irrelevant to the user.",
+			},
+			{
+				Type:        "chore",
+				Description: "for updates that do not apply to the above, such as dependency updates.",
+			},
+		},
+	}
 )
+
+type TypeRule struct {
+	Type        string `yaml:"type"`
+	Description string `yaml:"description"`
+}
+
+type TypeRules []TypeRule
+
+func (typeRules TypeRules) String() string {
+	ret := "Allows type values\n"
+	for _, tr := range typeRules {
+		ret += fmt.Sprintf("\033[0;93m%s\033[0m\t%s\n", tr.Type, tr.Description)
+	}
+
+	return ret
+}
+
+type Config struct {
+	TypeRules TypeRules `yaml:"type_rules"`
+}
 
 type Format struct {
 	Type    string
 	Scope   string
 	Subject string
+}
+
+type Linter struct {
+	Conf   Config
+	Format Format
+}
+
+func NewConfig(filepath string) (Config, error) {
+	if filepath == "" {
+		return DefaultRules, nil
+	}
+
+	f, err := os.Open(filepath)
+	if err != nil {
+		return Config{}, xerrors.Errorf("failed to open config: %w", err)
+	}
+	var conf Config
+	if err := yaml.NewDecoder(f).Decode(&conf); err != nil {
+		return Config{}, xerrors.Errorf("failed to parse yaml: %w", err)
+	}
+
+	return conf, nil
 }
 
 func NewFormat(m string) (Format, error) {
@@ -98,9 +186,9 @@ func (f Format) scopeLinter() error {
 	return nil
 }
 
-func (f Format) typeLinter() error {
-	for _, t := range requiredTypes {
-		if t == f.Type {
+func (f Format) typeLinter(c Config) error {
+	for _, r := range c.TypeRules {
+		if r.Type == f.Type {
 			return nil
 		}
 	}
@@ -111,8 +199,8 @@ func (f Format) typeLinter() error {
 	return ErrType
 }
 
-func (f Format) Verify() error {
-	if err := f.typeLinter(); err != nil {
+func (f Format) Verify(c Config) error {
+	if err := f.typeLinter(c); err != nil {
 		return err
 	}
 
@@ -122,33 +210,56 @@ func (f Format) Verify() error {
 	return nil
 }
 
-func run() (string, error) {
+func run() (string, Config, error) {
+	flag.Parse()
+
+	conf, err := NewConfig(*r)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	s, err := getMessage()
+	if err != nil {
+		return "", conf, err
+	}
+
+	format, err := NewFormat(s)
+	if err != nil {
+		return s, conf, err
+	}
+	if err := format.Verify(conf); err != nil {
+		return s, conf, err
+	}
+
+	return "", conf, nil
+}
+
+func getMessage() (string, error) {
+	reader := bufio.NewReader(os.Stdin)
+	b, _, _ := reader.ReadLine()
+	if len(b) != 0 {
+		return string(b), nil
+	}
+
 	f, err := os.Open(commitMsgFilePath)
 	if err != nil {
 		return "", err
 	}
-	r := bufio.NewReader(f)
-	b, _, err := r.ReadLine()
+
+	reader = bufio.NewReader(f)
+	b, _, err = reader.ReadLine()
 	if err != nil {
 		return "", ErrFormat
 	}
 
-	format, err := NewFormat(string(b))
-	if err != nil {
-		return string(b), err
-	}
-	if err := format.Verify(); err != nil {
-		return string(b), err
-	}
-
-	return "", nil
+	return string(b), nil
 }
 
-func finally(m string, err error) {
+func finally(m string, conf Config, err error) {
 	message := ""
 	switch err {
 	case ErrFormat, ErrType:
-		message = fmt.Sprintf(errorTemplate, errorTitle, m, formatDoc, typeDoc, footer)
+		message = fmt.Sprintf(errorTemplate, errorTitle, m, formatDoc, conf.TypeRules, footer)
 	case ErrStyle:
 		message = fmt.Sprintf(errorTemplate, errorTitle, m, formatDoc, styleDoc, footer)
 	case ErrScope:
