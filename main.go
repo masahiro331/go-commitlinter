@@ -17,6 +17,7 @@ import (
 
 const (
 	commitMsgFilePath = ".git/COMMIT_EDITMSG"
+	defaultYamlName   = ".commitlinter.yaml"
 	formatDoc         = "<type>(<scope>): <subject>"
 	scopeDoc          = "The <scope> can be empty (e.g. if the change is a global or difficult to assign to a single component), in which case the parentheses are omitted."
 	styleDoc          = "The <type> and <scope> should always be lowercase."
@@ -129,9 +130,17 @@ type Format struct {
 	Subject string
 }
 
+func fileExists(filename string) bool {
+	_, err := os.Stat(filename)
+	return err == nil
+}
+
 func NewConfig(filepath string) (Config, error) {
 	if filepath == "" {
-		return DefaultConfig, nil
+		if !fileExists(defaultYamlName) {
+			return DefaultConfig, nil
+		}
+		filepath = defaultYamlName
 	}
 
 	f, err := os.Open(filepath)
