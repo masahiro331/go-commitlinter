@@ -52,7 +52,7 @@ var (
 
 	DefaultConfig = Config{
 		SkipPrefixes: []string{
-			"Merge branch ",
+			"Merge ",
 			"BREAKING: ",
 		},
 		Reference: "https://github.com/masahiro331/go-commitlinter#description",

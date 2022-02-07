@@ -1,0 +1,13 @@
+name: 'Go commit linter'
+description: 'Inspect commit messages with the format "<type>(scope): <subject>".'
+inputs:
+  message:  # id of input
+    description: 'commit message or pull request messaeg'
+    required: true
+    default: 'World'
+outputs:
+  time: # id of output
+    description: 'The time we greeted you'
+runs:
+  using: 'node16'
+  main: 'index.js'

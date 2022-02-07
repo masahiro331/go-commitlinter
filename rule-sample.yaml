@@ -1,6 +1,6 @@
 
 skip_prefixes:
-  - 'Merge branch '
+  - 'Merge '
   - 'BREAKING: '
 type_rules:
   - type: feat
