@@ -16,6 +16,7 @@ jobs:
       - name: Set up go-commitlinter
         run: go install github.com/masahiro331/go-commitlinter@0.0.1
       - name: Run Pull Request Lint
-        run: gh pr view 1 | head -n 1  | cut -f 2 | go-commitlinter
+        run: gh pr view $PR | head -n 1  | cut -f 2 | go-commitlinter
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.number }}
