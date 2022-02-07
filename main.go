@@ -95,8 +95,9 @@ var (
 				Description: "for updates that do not apply to the above, such as dependency updates.",
 			},
 		},
-		StyleDoc: styleDoc,
-		ScopeDoc: scopeDoc,
+		StyleDoc:   styleDoc,
+		SubjectDoc: subjectDoc,
+		ScopeDoc:   scopeDoc,
 	}
 )
 
@@ -122,6 +123,7 @@ type Config struct {
 	Reference    string    `yaml:"reference"`
 	StyleDoc     string    `yaml:"style_doc"`
 	ScopeDoc     string    `yaml:"scope_doc"`
+	SubjectDoc   string    `yaml:"subject_doc"`
 }
 
 type Format struct {
@@ -274,6 +276,8 @@ func finally(m string, conf Config, err error) {
 		message = fmt.Sprintf(errorTemplate, textRed(errorTitle), textRed(m), textBrightGreen(formatDoc), textBrightYellow(conf.StyleDoc), textBrightGreen(conf.Reference))
 	case ErrScope:
 		message = fmt.Sprintf(errorTemplate, textRed(errorTitle), textRed(m), textBrightGreen(formatDoc), textBrightYellow(conf.ScopeDoc), textBrightGreen(conf.Reference))
+	case ErrSubject:
+		message = fmt.Sprintf(errorTemplate, textRed(errorTitle), textRed(m), textBrightGreen(formatDoc), textBrightYellow(conf.SubjectDoc), textBrightGreen(conf.Reference))
 	case nil:
 		return
 	default:
