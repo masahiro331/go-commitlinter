@@ -1,0 +1,5 @@
+type_rules:
+  - type: feat
+    description: for a new feature for the user, not a new feature for build script.
+  - type: fix
+    description: for a bug fix for the user, not a fix to a build script.

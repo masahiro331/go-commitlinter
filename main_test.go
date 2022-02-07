@@ -126,8 +126,9 @@ func TestVerify(t *testing.T) {
 			if err != nil {
 				assert.NoError(t, err)
 			}
+			c, _ := NewConfig("")
 
-			err = f.Verify()
+			err = f.Verify(c)
 			if tc.wantErr == nil {
 				assert.NoError(t, err)
 			}
