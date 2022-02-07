@@ -36,6 +36,9 @@ var (
 	ErrScope  = errors.New("invalid scope error")
 
 	DefaultRules = Config{
+		SkipPrefixes: []string{
+			"Merge branch ",
+		},
 		TypeRules: TypeRules{
 			{
 				Type:        "feat",
@@ -94,7 +97,8 @@ func (typeRules TypeRules) String() string {
 }
 
 type Config struct {
-	TypeRules TypeRules `yaml:"type_rules"`
+	SkipPrefixes []string  `yaml:"skip_prefixes"`
+	TypeRules    TypeRules `yaml:"type_rules"`
 }
 
 type Format struct {
@@ -200,6 +204,11 @@ func run() (string, Config, error) {
 	s, err := getMessage()
 	if err != nil {
 		return "", conf, err
+	}
+	for _, skipPrefix := range conf.SkipPrefixes {
+		if strings.HasPrefix(s, skipPrefix) {
+			return "", conf, nil
+		}
 	}
 
 	format, err := NewFormat(s)
