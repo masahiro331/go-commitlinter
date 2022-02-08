@@ -1,7 +1,7 @@
 name: Test
 on:
   pull_request:
-    types: [edited]
+    types: [edited, opened]
 env:
   GO_VERSION: "1.17"
 jobs:
@@ -11,11 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Go pull request message linter
-        uses: masahiro331/go-commitlinter@0.1.0
+        uses: masahiro331/go-commitlinter@0.1.1
         env:
-          PR: ${{ github.event.number }}
-          ACTION: ${{ github.event.action }}
-          ID: ${{ github.event.id }}
           TITLE: ${{ github.event.pull_request.title }}
-          TITLE2: ${{ github.event.title }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
