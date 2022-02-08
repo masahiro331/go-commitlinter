@@ -13,6 +13,7 @@ jobs:
         uses: masahiro331/go-commitlinter@0.1.0
         env:
           PR: ${{ github.event.number }}
+          ACTION: ${{ github.event.action }}
           TITLE: ${{ github.event.pull_request.title }}
           TITLE2: ${{ github.event.title }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
