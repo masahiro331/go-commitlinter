@@ -8,5 +8,5 @@ runs:
         tar xvfz go-commitlinter.tar.gz
         mv go-commitlinter /usr/local/bin/
       shell: bash
-    - run: gh pr view $PR | head -n 1  | cut -f 2 | go-commitlinter
+    - run: echo $TITLE | go-commitlinter
       shell: bash
