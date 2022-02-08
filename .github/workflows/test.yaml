@@ -1,8 +1,7 @@
 name: Test
 on:
   pull_request:
-  pull_request_review:
-  pull_request_review_comment:
+    types: [edited]
 env:
   GO_VERSION: "1.17"
 jobs:
