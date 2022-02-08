@@ -47,6 +47,7 @@ Add the following github actions workflow.
 name: Test
 on:
   pull_request:
+    types: [edited, opened]
 env:
   GO_VERSION: "1.17"
 jobs:
@@ -56,10 +57,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Go pull request message linter
-        uses: masahiro331/go-commitlinter@0.1.0
+        uses: masahiro331/go-commitlinter@0.1.1
         env:
-          PR: ${{ github.event.number }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITLE: ${{ github.event.pull_request.title }}
 ```
 
 ## Custom Rules
