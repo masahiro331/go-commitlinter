@@ -108,10 +108,22 @@ type TypeRule struct {
 
 type TypeRules []TypeRule
 
+func (typeRules TypeRules) getLongestTypeLength() int {
+	length := 0
+	for _, tr := range typeRules {
+		if length < len(tr.Type) {
+			length = len(tr.Type)
+		}
+	}
+	return length
+}
+
 func (typeRules TypeRules) String() string {
 	ret := "Allowed <type> values\n"
+
+	spaceLength := typeRules.getLongestTypeLength() + 2
 	for _, tr := range typeRules {
-		ret += fmt.Sprintf("%s\t%s\n", textBrightYellow(tr.Type), tr.Description)
+		ret += fmt.Sprintf("%s%s%s\n", textBrightYellow(tr.Type), strings.Repeat(" ", spaceLength-len(tr.Type)), tr.Description)
 	}
 
 	return ret
