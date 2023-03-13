@@ -69,7 +69,7 @@ func TestNewFormat(t *testing.T) {
 			wantErr: ErrFormat,
 		},
 		{
-			Name: "subject empty 3",
+			Name:    "subject empty 3",
 			Message: "feat(test):        		 ",
 			wantErr: ErrFormat,
 		},
@@ -104,6 +104,16 @@ func TestVerify(t *testing.T) {
 			want: Format{
 				Type:    "feat",
 				Scope:   "test",
+				Subject: "samples",
+			},
+			wantErr: nil,
+		},
+		{
+			Name:    "happy path no scope",
+			Message: "feat: samples",
+			want: Format{
+				Type:    "feat",
+				Scope:   "",
 				Subject: "samples",
 			},
 			wantErr: nil,
