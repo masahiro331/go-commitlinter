@@ -6,7 +6,7 @@ go-commitlinter is simple commit message linter.
 
 ## Quick Start
 ```
-go install github.com/masahiro331/go-commitlinter@0.1.0
+go install github.com/masahiro331/go-commitlinter@latest
 echo "go-commitlinter" >> .git/hooks/commit-msg
 chmod 755 .git/hooks/commit-msg
 ```
@@ -19,7 +19,7 @@ The go-commitlinter will detect and fail a commit message that is not in the fol
 <type>(<scope>): <subject>
 ```
 
-The `type` and `scope` should always be lowercase as shown below.  
+The `type` and `scope` should always be lowercase as shown below.
 The `<scope>` can be empty (e.g. if the change is a global or difficult to assign to a single component), in which case the parentheses are omitted.
 
 **Allowed `<type>` values:**
@@ -40,7 +40,7 @@ The `<scope>` can be empty (e.g. if the change is a global or difficult to assig
   - etc...
 
 ## Other use cases
-For example, if you want to validate the title of a pull request.  
+For example, if you want to validate the title of a pull request.
 Add the following github actions workflow.
 
 ```
@@ -57,7 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Go pull request message linter
-        uses: masahiro331/go-commitlinter@0.1.1
+        uses: masahiro331/go-commitlinter@0.1.2
         env:
           TITLE: ${{ github.event.pull_request.title }}
 ```
@@ -95,14 +95,20 @@ type_rules:
   - type: chore
     description: for updates that do not apply to the above, such as dependency updates.
 reference: https://github.com/masahiro331/go-commitlinter#description
+style_pattern: '[a-z]+'
 style_doc: The type and scope should always be lowercase.
+scope_pattern: '(feat|fix|perf|docs|style|refactor|test|build|chore)'
 scope_doc: The <scope> can be empty (e.g. if the change is a global or difficult to assign to a single component), in which case the parentheses are omitted.
+subject_pattern: '[a-z]\w*'
 subject_doc: The first letter of <subject> should be lowercase.
 ```
 
 - **skip_prefixes**: Use skip some titles. for example, merge commit "Merge branch 'main' of ....."
 - **type_rules**: Use it to add your own type.
 - **reference**: Include a link to the CONTRIBUTING GUILD.
+- **style_pattern**: Matching pattern of style.
 - **style_doc**: Describe the specifications of style.
+- **scope_pattern**: Matching pattern of scope.
 - **scope_doc**: Describe the specifications of scope.
+- **subject_pattern**: Matching pattern of subject.
 - **subject_doc**: Describe the specifications of subject.
