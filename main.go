@@ -9,6 +9,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"unicode"
 
 	"golang.org/x/xerrors"
 	"gopkg.in/yaml.v3"
@@ -18,11 +19,8 @@ const (
 	commitMsgFilePath = ".git/COMMIT_EDITMSG"
 	defaultYamlName   = ".commitlinter.yaml"
 	formatDoc         = "<type>(<scope>): <subject>"
-	scopePattern      = `(feat|fix|perf|docs|style|refactor|test|build|chore)`
 	scopeDoc          = "The <scope> can be empty (e.g. if the change is a global or difficult to assign to a single component), in which case the parentheses are omitted."
-	stylePattern      = `[a-z]+`
 	styleDoc          = "The <type> and <scope> should always be lowercase."
-	subjectPattern    = `^[a-z]\w*`
 	subjectDoc        = "The first letter of <subject> should be lowercase."
 )
 
@@ -97,12 +95,9 @@ var (
 				Description: "for updates that do not apply to the above, such as dependency updates.",
 			},
 		},
-		StylePattern:   stylePattern,
-		StyleDoc:       styleDoc,
-		SubjectPattern: subjectPattern,
-		SubjectDoc:     subjectDoc,
-		ScopePattern:   scopePattern,
-		ScopeDoc:       scopeDoc,
+		StyleDoc:   styleDoc,
+		SubjectDoc: subjectDoc,
+		ScopeDoc:   scopeDoc,
 	}
 )
 
@@ -135,15 +130,12 @@ func (typeRules TypeRules) String() string {
 }
 
 type Config struct {
-	SkipPrefixes   []string  `yaml:"skip_prefixes"`
-	TypeRules      TypeRules `yaml:"type_rules"`
-	Reference      string    `yaml:"reference"`
-	StylePattern   string    `yaml:"style_pattern"`
-	StyleDoc       string    `yaml:"style_doc"`
-	ScopePattern   string    `yaml:"scope_pattern"`
-	ScopeDoc       string    `yaml:"scope_doc"`
-	SubjectPattern string    `yaml:"subject_pattern"`
-	SubjectDoc     string    `yaml:"subject_doc"`
+	SkipPrefixes []string  `yaml:"skip_prefixes"`
+	TypeRules    TypeRules `yaml:"type_rules"`
+	Reference    string    `yaml:"reference"`
+	StyleDoc     string    `yaml:"style_doc"`
+	ScopeDoc     string    `yaml:"scope_doc"`
+	SubjectDoc   string    `yaml:"subject_doc"`
 }
 
 type Format struct {
@@ -209,26 +201,20 @@ func NewFormat(m string) (Format, error) {
 	return f, nil
 }
 
-func (f Format) scopeLinter(pattern string) error {
-	if len(f.Scope) == 0 {
-		return nil
-	}
-
-	matched, err := regexp.MatchString(pattern, f.Scope)
-	if err != nil || !matched {
+func (f Format) scopeLinter() error {
+	if f.Scope != strings.ToLower(f.Scope) {
 		return ErrStyle
 	}
 
 	return nil
 }
 
-func (f Format) subjectLinter(pattern string) error {
+func (f Format) subjectLinter() error {
 	if !(len(f.Subject) > 0) {
 		return ErrFormat
 	}
-
-	matched, err := regexp.MatchString(pattern, f.Subject)
-	if err != nil || !matched {
+	r := rune(f.Subject[0])
+	if unicode.IsUpper(r) {
 		return ErrSubject
 	}
 
@@ -253,11 +239,11 @@ func (f Format) Verify(c Config) error {
 		return err
 	}
 
-	if err := f.scopeLinter(c.ScopePattern); err != nil {
+	if err := f.scopeLinter(); err != nil {
 		return err
 	}
 
-	if err := f.subjectLinter(c.SubjectPattern); err != nil {
+	if err := f.subjectLinter(); err != nil {
 		return err
 	}
 
